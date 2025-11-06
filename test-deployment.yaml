@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: comfyui-sa
+  namespace: default
+  annotations:
+    iam.gke.io/gcp-service-account: genai3d-sa@dn-demos.iam.gserviceaccount.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comfyui-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: comfyui
+  template:
+    metadata:
+      annotations:
+      labels:
+        app: comfyui
+    spec:
+      serviceAccountName: comfyui-sa
+      nodeSelector:
+       cloud.google.com/gke-accelerator: nvidia-l4
+       cloud.google.com/gke-accelerator-count: "1"
+       cloud.google.com/gke-spot: "true"
+      volumes:
+      - name: nfs-pvc-volume
+        persistentVolumeClaim:
+          claimName: nfs-pvc
+      containers:
+      - name: comfyui
+        image: europe-west3-docker.pkg.dev/dn-demos/random-demos/comfyui-gke@sha256:083738525cd15e9865f80fdb586865b6a372b9475a8922748562def46dddb851
+        command: ["conda", "run", "--no-capture-output", "-n", "comfyui", "python", "/app/ComfyUI/main.py", "--listen", "0.0.0.0"]
+        ports:
+        - containerPort: 8188
+        env:
+        - name: PROJECT_ID
+          value: "your-gcp-project-id"
+        - name: LOCATION
+          value: "your-gcp-location"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8188
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 2
+            memory: 4Gi
+            ephemeral-storage: 40Gi
+          limits:
+           nvidia.com/gpu: "1"
+        volumeMounts:
+        - name: nfs-pvc-volume
+          mountPath: /app/ComfyUI/models
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv
+spec:
+  capacity:
+    storage: 1Ti # Adjust size as needed
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /h3d_share/models
+    server: 10.78.21.66
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: "" # Empty storageClassName to bind to the PV without a provisioner
+  resources:
+    requests:
+      storage: 1Ti # Must match or be less than the PV's capacity
+  volumeName: nfs-pv
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: comfyui-service
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"default": "comfyui-backend-config"}' # Referencing the BackendConfig    
+spec:
+  type: NodePort
+  selector:
+    app: comfyui
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8188
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: comfyui-subdomain-cert
+spec:
+  domains:
+    - comfyui.nikolaidan.demo.altostrat.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: comfyui-ingress
+  annotations:
+    networking.gke.io/managed-certificates: comfyui-subdomain-cert
+spec:
+  rules:
+  - host: comfyui.nikolaidan.demo.altostrat.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: comfyui-service
+            port:
+              number: 80
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: comfyui-backend-config
+spec:
+  timeoutSec: 3600 
+  iap:
+    enabled: true
+    oauthclientCredentials:
+      secretName: iap-secret
