@@ -1,0 +1,8 @@
+project_id          = ""
+oauth_client_id     = ""
+oauth_client_secret = ""
+comfyui_domain      = ""
+region              = "europe-west3"
+filestore_zone      = "europe-west3-b"
+cluster_location    = "europe-west3"
+gke_autopilot_network_tags = ["comfyui-gke-autopilot-fwnt"]

@@ -1,0 +1,9 @@
+*.tfstate*
+*.lock*
+terraform.tfvars
+.terraform/
+cloud_function.zip
+
+agones/*.yaml
+ingress-iap/*.yaml
+nginx/*.yaml

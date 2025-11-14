@@ -1,0 +1,67 @@
+# Copyright 2020 Google LLC All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: "agones.dev/v1"
+kind: Fleet
+metadata:
+  name: comfyui-agones-fleet-cpu
+spec:
+  replicas: 1
+  template:
+    spec:
+      container: simple-game-server
+      ports:
+      - name: default
+        container: simple-game-server
+        containerPort: 7654
+      - name: comfyui
+        container: comfyui
+        containerPort: 8188
+        protocol: TCP
+      template:
+        spec:
+          serviceAccountName: comfyui-sa
+          containers:
+          - name: simple-game-server
+            image: <REGION>-docker.pkg.dev/<PROJECT_ID>/<BUILD_REGIST>/game-server:tf
+            env:
+            - name: APP_PORT
+              value: "8188"
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "20m"
+              limits:
+                memory: "64Mi"
+                cpu: "20m"
+          - name: comfyui
+            image: <REGION>-docker.pkg.dev/<PROJECT_ID>/<BUILD_REGIST>/comfyui-gke:tf
+            command: ["/bin/bash", "start.sh", "--cpu"]
+            readinessProbe:
+              httpGet:
+                path: /
+                port: 8188
+              initialDelaySeconds: 30
+              periodSeconds: 10
+            resources:
+              requests:
+                cpu: 2
+                memory: 8Gi
+            volumeMounts:
+            - name: comfyui-storage
+              mountPath: /comfyui_nfs_dir
+          volumes:
+            - name: comfyui-storage
+              persistentVolumeClaim:
+                claimName: vol1

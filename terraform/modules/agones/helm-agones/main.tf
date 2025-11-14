@@ -1,0 +1,67 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "7.10.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 3.1.0"
+    }
+  }
+}
+data "google_client_config" "default" {}
+
+data "google_container_cluster" "comfy_cluster" {
+  name     = var.gke_cluster_name
+  location = var.gke_cluster_location
+  project  = var.project_id
+}
+
+provider "kubernetes" {
+  host  = "https://${data.google_container_cluster.comfy_cluster.endpoint}"
+  token = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(
+    data.google_container_cluster.comfy_cluster.master_auth[0].cluster_ca_certificate,
+  )
+  experiments {
+    manifest_resource = true
+  }
+}
+
+provider "helm" {
+  kubernetes = {
+    host  = "https://${data.google_container_cluster.comfy_cluster.endpoint}"
+    token = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(
+      data.google_container_cluster.comfy_cluster.master_auth[0].cluster_ca_certificate,
+    )
+  }
+}
+
+resource "helm_release" "agones" {
+  name             = "comfyui-agones-release"
+  repository       = "https://agones.dev/chart/stable"
+  chart            = "agones"
+  force_update     = true
+  namespace        = "agones-system"
+  create_namespace = true
+  version          = var.agones_version
+  values = [
+    file("../agones/values.yaml")
+  ]
+}

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComfyUI on GKE Autopilot - No available pods</title>
+</head>
+<body style="
+    /* Flexbox properties for centering */
+    display: flex;
+    justify-content: center; /* Centers items vertically (y-axis) */
+    align-items: center; /* Centers items horizontally (x-axis) */
+
+    /* Ensure body takes full viewport height */
+    min-height: 100vh;
+    margin: 0; /* Remove default body margin */
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+">
+    <div style="
+        padding: 40px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-align: center;
+        max-width: 500px;
+    ">
+        <div style="
+            margin-bottom: 20px; /* Space between the image and the buttons */
+            font-size: 18px;
+            color: #333;
+        ">
+            Currently no pods are available. Please try again later.
+        </div>
+
+        <form id="modeForm" method="POST" action="">
+            <input type="hidden" id="mode" name="mode" value="">
+        </form>
+
+        <div style="
+            display: flex; /* Allows buttons to sit side-by-side */
+            gap: 15px; /* Space between the two buttons */
+            justify-content: center;
+        ">
+            <button onclick="location.window.location = window.location.href;" style="
+                /* Button styling */
+                padding: 10px 20px;
+                font-size: 16px;
+                cursor: pointer;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;
+            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+                Retry
+            </button>
+        </div>
+    </div>
+</body>
+</html>
