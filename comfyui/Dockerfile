@@ -31,6 +31,9 @@ RUN pip install -r requirements.txt
 WORKDIR /app/ComfyUI/custom_nodes
 COPY vertex-ai-comfyui-nodes/ ./vertex-ai-comfyui-nodes
 RUN cd vertex-ai-comfyui-nodes && pip install -r requirements.txt
+WORKDIR /app/ComfyUI/custom_nodes
+RUN git clone https://github.com/ltdrdata/ComfyUI-Manager comfyui-manager
+RUN cd comfyui-manager && pip install -r requirements.txt
 
 WORKDIR /app/ComfyUI
 COPY start.sh .
